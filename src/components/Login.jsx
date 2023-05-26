@@ -11,10 +11,11 @@ import {
   Checkbox,
   Anchor,
   Stack,
-  Container,
   Center,
 } from "@mantine/core";
-import NavbarLogin from "./Navbar";
+import { notifications } from "@mantine/notifications";
+import { useNavigate } from "react-router-dom";
+import { routes } from "./routes";
 //import { GoogleButton, TwitterButton } from "../SocialButtons/SocialButtons";
 
 export function AuthenticationForm() {
@@ -35,10 +36,9 @@ export function AuthenticationForm() {
           : null,
     },
   });
-
+  const navigation = useNavigate();
   return (
-    <Paper style={{ height: "100vh", overflow: "hidden" }} radius={0}>
-      <NavbarLogin />
+    <Paper style={{ height: "90%", overflow: "hidden" }} radius={0}>
       <Center h={"100%"}>
         <Paper shadow="md" radius="sm" w={"500px"} p="xl" withBorder>
           <Text size="xl" weight={500} align="center">
@@ -120,9 +120,39 @@ export function AuthenticationForm() {
                   ? "Already have an account? Login"
                   : "Don't have an account? Register"}
               </Anchor>
-              <Button type="submit" radius="xl">
+              {/* <Anchor
+                component={Link}
+                to={type === "login" ? routes.homePath : ""}
+              > */}
+              <Button
+                type="submit"
+                radius="xl"
+                onClick={() => {
+                  notifications.show({
+                    id: "checkingUserCreds",
+                    title: "Checking your credentials",
+                    color: "blue",
+                    loading: true,
+                    autoClose: false,
+                    withCloseButton: false,
+                  });
+
+                  setTimeout(() => {
+                    notifications.update({
+                      id: "checkingUserCreds",
+                      title: "Successful Login!",
+                      color: "green",
+                      loading: false,
+                      autoClose: true,
+                      withCloseButton: false,
+                    });
+                    navigation(routes.homePath);
+                  }, 2000);
+                }}
+              >
                 {upperFirst(type)}
               </Button>
+              {/* </Anchor> */}
             </Group>
           </form>
         </Paper>
