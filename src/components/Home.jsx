@@ -7,65 +7,92 @@ import {
   Divider,
   Group,
   Image,
+  LoadingOverlay,
+  Menu,
   Paper,
+  ScrollArea,
+  Select,
   Stack,
   Text,
-  TextInput,
   Textarea,
-  useMantineTheme,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
 import {
-  IconCheck,
   IconChevronDown,
-  IconCross,
+  IconEdit,
   IconGripVertical,
   IconMenu2,
   IconPlus,
+  IconTrash,
   IconX,
 } from "@tabler/icons-react";
 import React, { useEffect, useState } from "react";
-import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
+
 import {
   failureNotification,
   successNotification,
 } from "../HelperMethods/notificationHelpers";
+import axios from "axios";
+import moment from "moment/moment";
 
-const DowpDownList = () => {
-  try {
-  } catch (e) {}
-};
-
-const dragFunction = (e, id) => {
-  e.dataTransfer.setData("todoId", id);
-  console.log("has started");
-};
-
+var currentLoadingID = null;
 const Home = () => {
   const [AddTodoToListLoader, setAddTodoToListLoader] = useState(false);
   const [toggleAddTask, setAddToggleTask] = useState(false);
   const [toggleListItems, setToggleListItems] = useState(false);
-  const [listItems, setListItems] = useState([
-    {
-      id: "1",
-      title: "Task 1",
-      completed: true,
-      creationTime: Date.now(),
-      completionTime: Date.now(),
-    },
-    {
-      id: "2",
-      title: "Task 2",
-      completed: false,
-      creationTime: Date.now(),
-      completionTime: Date.now(),
-    },
-  ]);
-  const AddTodoToList = async () => {
-    try {
-      setAddTodoToListLoader(true);
-      // axios call with await
+  const [listItems, setListItems] = useState([]);
+  const [reRunUseEffect, setReRunUseEffect] = useState(false);
+  const [todoTitle, setTodoTitle] = useState("");
+  const [todoLoader, setTodoLoader] = useState(false);
+  const [todosLoader, setTodosLoader] = useState(true);
+
+  const updateTodoApiRequest = async (id, checkValue, createdAt) => {
+    let completionTimeinMS = null;
+    if (checkValue) {
+      completionTimeinMS = new Date();
+    }
+    currentLoadingID = id;
+    setTodoLoader(true);
+    let apiResponse = await axios.put(`http://localhost:5001/api/todos/${id}`, {
+      completed: checkValue,
+      completedTime: completionTimeinMS,
+    });
+    if (apiResponse.status === 200) {
       successNotification();
+      setReRunUseEffect(!reRunUseEffect);
+    } else {
+      failureNotification();
+    }
+    setTodoLoader(false);
+    currentLoadingID = null;
+  };
+  const deleteTodoApiRequest = async (id) => {
+    currentLoadingID = id;
+    setTodoLoader(true);
+    let apiResponse = await axios.delete(
+      `http://localhost:5001/api/todos/${id}`
+    );
+    if (apiResponse.status === 200) {
+      successNotification();
+      setReRunUseEffect(!reRunUseEffect);
+    } else {
+      failureNotification();
+    }
+    setTodoLoader(false);
+    currentLoadingID = null;
+  };
+  const createTodoApiRequest = async () => {
+    try {
+      //setAddTodoToListLoader(true);
+      // axios call with await
+      let apiResponse = await axios.post("http://localhost:5001/api/todos", {
+        title: todoTitle,
+      });
+      console.log("api response", apiResponse);
+      if (apiResponse.status === 201) {
+        successNotification();
+        setListItems(apiResponse.data.data);
+        setReRunUseEffect(!reRunUseEffect);
+      }
     } catch (error) {
       console.log("Error");
       failureNotification();
@@ -73,25 +100,46 @@ const Home = () => {
       setAddTodoToListLoader(false);
     }
   };
+  const getMyTodos = async () => {
+    console.log("calling the api");
+
+    let apiResponse = await axios.get("http://localhost:5001/api/todos");
+    console.log(apiResponse);
+    if (apiResponse?.status === 200) {
+      successNotification();
+      return apiResponse.data;
+    } else {
+      failureNotification();
+    }
+  };
   useEffect(() => {
+    let isCancelled = false;
     try {
       //axios call for initial getting of to do list
+      if (!isCancelled) {
+        getMyTodos().then(setListItems);
+      }
     } catch (error) {
       console.log("Error");
-      notifications.show({
-        title: "",
-        color: "red",
-        message: "",
-      });
+      failureNotification();
     }
-  });
+    setTodosLoader(false);
+    return () => {
+      isCancelled = true;
+    };
+  }, [reRunUseEffect]);
 
   return (
     <Paper
       radius={0}
       h={"90%"}
-      component={BackgroundImage}
-      src="https://images.unsplash.com/photo-1588421357574-87938a86fa28?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"
+      component={ScrollArea}
+      style={{
+        backgroundRepeat: "repeat-y",
+        backgroundImage:
+          "url(https://images.unsplash.com/photo-1588421357574-87938a86fa28?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
+        backgroundSize: "100%",
+      }}
     >
       <Stack
         justify="flex-start"
@@ -118,7 +166,8 @@ const Home = () => {
             }
           />
         </div>
-        <Box>
+        <Box pos={"relative"}>
+          <LoadingOverlay visible={todosLoader} />
           <Box
             w={350}
             h={55}
@@ -132,133 +181,222 @@ const Home = () => {
           >
             <Group align="center" h={"100%"} position="apart" px={"0.9rem"}>
               <Group>
-                <ActionIcon variant="transparent">
-                  <IconMenu2 color="white"></IconMenu2>
-                </ActionIcon>
+                <Menu withArrow withinPortal position="top-end">
+                  <Menu.Target>
+                    <ActionIcon variant="transparent">
+                      <IconMenu2 color="white"></IconMenu2>
+                    </ActionIcon>
+                  </Menu.Target>
+                  <Menu.Dropdown>
+                    <Select
+                      placeholder="Select a category to view"
+                      defaultValue={"all"}
+                      data={[
+                        {
+                          value: "all",
+                          label: "All",
+                        },
+                        {
+                          value: "true",
+                          label: "Completed to-do's",
+                        },
+                        {
+                          value: "false",
+                          label: "Pending to-do's",
+                        },
+                      ]}
+                    />
+                  </Menu.Dropdown>
+                </Menu>
                 <Text color="white">To do Today</Text>
               </Group>
               <ActionIcon
+                disabled={listItems?.length === 0 ? true : false}
                 variant="transparent"
                 onClick={() => {
                   setToggleListItems(!toggleListItems);
                 }}
               >
-                <IconChevronDown color="white" size={20}></IconChevronDown>
+                <IconChevronDown
+                  color={listItems?.length === 0 ? "grey" : "white"}
+                  size={20}
+                ></IconChevronDown>
               </ActionIcon>
             </Group>
           </Box>
-
-          <DragDropContext
-            onDragEnd={(param) => {
-              console.log(param);
+          <Box
+            hidden={toggleListItems}
+            mt={"1rem"}
+            style={{
+              transition: "ease-in-out",
+              transitionDuration: "1s",
+              borderRadius: "5px",
+              overflow: "hidden",
             }}
           >
-            <Droppable droppableId="droppable">
-              {(provided, snapshot) => {
-                return (
+            {listItems?.map((item, index) => {
+              return (
+                <Box pos={"relative"}>
+                  <LoadingOverlay
+                    visible={item._id === currentLoadingID ? todoLoader : false}
+                  />
                   <Box
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    hidden={toggleListItems}
-                    mt={"1rem"}
+                    w={350}
+                    pt={
+                      item?.completedTime !== null &&
+                      item?.completedTime !== undefined
+                        ? 0
+                        : 10
+                    }
+                    pb={10}
                     style={{
-                      transition: "ease-in-out",
-                      transitionDuration: "1s",
-                      borderRadius: "5px",
-                      overflow: "hidden",
+                      background: "rgba(255, 255, 255, 0.463)",
+                      boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
+                      backdropFilter: "blur(5.2px)",
+                      WebkitBackdropFilter: "blur(5.2px)",
                     }}
                   >
-                    {listItems.map((item, index) => {
-                      return (
-                        <Box>
-                          <Draggable
-                            key={item.id}
-                            draggableId={item.id}
-                            index={index}
-                          >
-                            {(provided, snapshot) => {
-                              return (
-                                <Box
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  w={350}
-                                  h={55}
-                                  style={{
-                                    background: "rgba(255, 255, 255, 0.463)",
-                                    boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
-                                    backdropFilter: "blur(5.2px)",
-                                    WebkitBackdropFilter: "blur(5.2px)",
-                                  }}
-                                >
-                                  <Group
-                                    align="center"
-                                    h={"100%"}
-                                    position="apart"
-                                    px={"0.9rem"}
-                                  >
-                                    <Checkbox
-                                      styles={{
-                                        root: {
-                                          width: "86%",
-                                        },
-                                        label: {
-                                          width: "100%",
-                                        },
-                                        labelWrapper: {
-                                          width: "100%",
-                                        },
-                                        input: {
-                                          borderRadius: "50%",
-                                          background: "transparent",
-                                          ":checked": {
-                                            backgroundColor: "#0272b6",
-                                          },
-                                        },
-                                      }}
-                                      label={
-                                        <TextInput
-                                          p={0}
-                                          m={0}
-                                          weight={500}
-                                          size={"xs"}
-                                          value={item.title}
-                                          onChange={() => {}}
-                                        />
-                                      }
-                                    />
+                    {item?.completedTime !== null &&
+                    item?.completedTime !== undefined ? (
+                      <Text
+                        color="black"
+                        align="right"
+                        fw={"bold"}
+                        size={12}
+                        m={0}
+                        p={0}
+                        mr={"1.5rem"}
+                      >
+                        Completed in :{" "}
+                        {moment(item.completedTime).diff(
+                          item.createdAt,
+                          "seconds"
+                        ) < 60
+                          ? "less than a minute"
+                          : moment(item.completedTime).diff(
+                              item.createdAt,
+                              "minutes"
+                            ) < 60
+                          ? moment(item.completedTime).diff(
+                              item.createdAt,
+                              "minutes"
+                            ) + "mins"
+                          : moment(item.completedTime).diff(
+                              item.createdAt,
+                              "hours"
+                            ) < 24
+                          ? moment(item.completedTime).diff(
+                              item.createdAt,
+                              "hours"
+                            ) + "hours"
+                          : moment(item.completedTime).diff(
+                              item.createdAt,
+                              "days"
+                            ) < 7
+                          ? moment(item.completedTime).diff(
+                              item.createdAt,
+                              "days"
+                            ) + "days"
+                          : moment(item.completedTime).diff(
+                              item.createdAt,
+                              "weeks"
+                            ) < 4
+                          ? moment(item.completedTime).diff(
+                              item.createdAt,
+                              "weeks"
+                            ) + "weeks"
+                          : moment(item.completedTime).diff(
+                              item.createdAt,
+                              "months"
+                            ) < 12
+                          ? moment(item.completedTime).diff(
+                              item.createdAt,
+                              "months"
+                            ) + "months"
+                          : moment(item.completedTime).diff(
+                              item.createdAt,
+                              "years"
+                            ) + "Years"}
+                      </Text>
+                    ) : null}
+                    <Group
+                      m={0}
+                      align="center"
+                      h={"100%"}
+                      position="apart"
+                      px={"0.9rem"}
+                    >
+                      <Checkbox
+                        defaultChecked={item?.completed}
+                        onChange={(e) => {
+                          updateTodoApiRequest(
+                            item._id,
+                            e.target.checked,
+                            item.createdAt
+                          );
+                        }}
+                        styles={{
+                          root: {
+                            width: "86%",
+                          },
+                          label: {
+                            color: "black",
+                            width: "100%",
+                          },
+                          labelWrapper: {
+                            width: "100%",
+                          },
+                          input: {
+                            borderRadius: "50%",
+                            background: "transparent",
+                            ":checked": {
+                              backgroundColor: "#0272b6",
+                            },
+                          },
+                        }}
+                        label={item.title}
+                      />
 
-                                    <ActionIcon
-                                      variant="transparent"
-                                      onClick={() => {}}
-                                    >
-                                      <IconGripVertical
-                                        stroke={0}
-                                        fill="white"
-                                        color="white"
-                                        size={20}
-                                      ></IconGripVertical>
-                                    </ActionIcon>
-                                  </Group>
-                                </Box>
-                              );
+                      <Menu withinPortal withArrow position="right-start">
+                        <Menu.Target>
+                          <ActionIcon variant="transparent">
+                            <IconGripVertical
+                              stroke={0}
+                              fill="white"
+                              color="white"
+                              size={20}
+                            ></IconGripVertical>
+                          </ActionIcon>
+                        </Menu.Target>
+                        <Menu.Dropdown>
+                          <Menu.Item
+                            icon={<IconEdit size={20} color="green" />}
+                            title="Edit"
+                          >
+                            Edit
+                          </Menu.Item>
+                          <Menu.Item
+                            onClick={() => {
+                              deleteTodoApiRequest(item._id);
                             }}
-                          </Draggable>
-                          <Divider
-                            hidden={
-                              index === listItems.length - 1 ? true : false
-                            }
-                          />
-                        </Box>
-                      );
-                    })}
-                    {provided.placeholder}
+                            icon={<IconTrash size={20} color="red" />}
+                            title="Delete"
+                          >
+                            Delete
+                          </Menu.Item>
+                        </Menu.Dropdown>
+                      </Menu>
+                    </Group>
                   </Box>
-                );
-              }}
-            </Droppable>
-          </DragDropContext>
+                  <Divider
+                    hidden={index === listItems.length - 1 ? true : false}
+                  />
+                </Box>
+              );
+            })}
+          </Box>
         </Box>
+
         <Box w={350}>
           <Divider mb={"md"} />
           <Button
@@ -284,13 +422,20 @@ const Home = () => {
               }}
               placeholder="Your to do"
               label="Your To do"
+              onChange={(e) => {
+                setTodoTitle(e.target.value);
+              }}
             />
             <Group w={"100%"} position="right" mt={3} spacing={3}>
               <Button
-                loading={AddTodoToListLoader}
+                // loading={AddTodoToListLoader}
+                onClick={() => {
+                  console.log("Calling the method");
+                  createTodoApiRequest();
+                }}
                 compact
                 color="green"
-                rightIcon={<IconPlus size={20} onClick={AddTodoToList} />}
+                rightIcon={<IconPlus size={20} />}
               >
                 Add
               </Button>
