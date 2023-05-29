@@ -1,6 +1,5 @@
 import {
   ActionIcon,
-  BackgroundImage,
   Box,
   Button,
   Checkbox,
@@ -33,6 +32,7 @@ import {
 } from "../HelperMethods/notificationHelpers";
 import axios from "axios";
 import moment from "moment/moment";
+import EditTodoModal from "./EditTodoModal";
 
 var currentLoadingID = null;
 const Home = () => {
@@ -44,8 +44,38 @@ const Home = () => {
   const [todoTitle, setTodoTitle] = useState("");
   const [todoLoader, setTodoLoader] = useState(false);
   const [todosLoader, setTodosLoader] = useState(true);
+  const [opened, setOpened] = useState(false);
+  const [updateTodoObject, setUpdateTodoObject] = useState({});
+  const [filteredTodos, setFilteredTodos] = useState([]);
+  const [filterType, setFilterType] = useState("all");
 
-  const updateTodoApiRequest = async (id, checkValue, createdAt) => {
+  useEffect(() => {
+    if (filterType === "all") {
+      console.log(filteredTodos);
+      setListItems(filteredTodos);
+    } else if (filterType === "true") {
+      let completedTodosList = filteredTodos.filter((item) => {
+        if (item.completed === true) {
+          return item;
+        } else {
+          return null;
+        }
+      });
+      console.log("completed", completedTodosList);
+      setListItems(completedTodosList);
+    } else {
+      let pendingTodosList = filteredTodos.filter((item) => {
+        if (item.completed === false) {
+          return item;
+        } else {
+          return null;
+        }
+      });
+      console.log("pending", pendingTodosList);
+      setListItems(pendingTodosList);
+    }
+  }, [filterType]);
+  const updateTodoApiRequest = async (id, checkValue, title) => {
     let completionTimeinMS = null;
     if (checkValue) {
       completionTimeinMS = new Date();
@@ -53,6 +83,7 @@ const Home = () => {
     currentLoadingID = id;
     setTodoLoader(true);
     let apiResponse = await axios.put(`http://localhost:5001/api/todos/${id}`, {
+      title: title,
       completed: checkValue,
       completedTime: completionTimeinMS,
     });
@@ -82,13 +113,14 @@ const Home = () => {
   };
   const createTodoApiRequest = async () => {
     try {
-      //setAddTodoToListLoader(true);
+      setAddTodoToListLoader(true);
       // axios call with await
       let apiResponse = await axios.post("http://localhost:5001/api/todos", {
         title: todoTitle,
       });
       console.log("api response", apiResponse);
       if (apiResponse.status === 201) {
+        setTodoTitle("");
         successNotification();
         setListItems(apiResponse.data.data);
         setReRunUseEffect(!reRunUseEffect);
@@ -107,6 +139,7 @@ const Home = () => {
     console.log(apiResponse);
     if (apiResponse?.status === 200) {
       successNotification();
+      setFilteredTodos(apiResponse.data);
       return apiResponse.data;
     } else {
       failureNotification();
@@ -131,6 +164,7 @@ const Home = () => {
 
   return (
     <Paper
+      py={10}
       radius={0}
       h={"90%"}
       component={ScrollArea}
@@ -141,6 +175,14 @@ const Home = () => {
         backgroundSize: "100%",
       }}
     >
+      <EditTodoModal
+        reRunUseEffect={reRunUseEffect}
+        setReRunUseEffect={setReRunUseEffect}
+        todoObject={updateTodoObject}
+        opened={opened}
+        setOpened={setOpened}
+        updateTodoApiRequest={updateTodoApiRequest}
+      />
       <Stack
         justify="flex-start"
         h={"100%"}
@@ -189,6 +231,7 @@ const Home = () => {
                   </Menu.Target>
                   <Menu.Dropdown>
                     <Select
+                      onChange={setFilterType}
                       placeholder="Select a category to view"
                       defaultValue={"all"}
                       data={[
@@ -236,7 +279,7 @@ const Home = () => {
           >
             {listItems?.map((item, index) => {
               return (
-                <Box pos={"relative"}>
+                <Box key={index} pos={"relative"}>
                   <LoadingOverlay
                     visible={item._id === currentLoadingID ? todoLoader : false}
                   />
@@ -327,12 +370,12 @@ const Home = () => {
                       px={"0.9rem"}
                     >
                       <Checkbox
-                        defaultChecked={item?.completed}
+                        defaultChecked={item?.completed === true ? true : false}
                         onChange={(e) => {
                           updateTodoApiRequest(
                             item._id,
                             e.target.checked,
-                            item.createdAt
+                            item.title
                           );
                         }}
                         styles={{
@@ -370,6 +413,10 @@ const Home = () => {
                         </Menu.Target>
                         <Menu.Dropdown>
                           <Menu.Item
+                            onClick={() => {
+                              setUpdateTodoObject(item);
+                              setOpened(!opened);
+                            }}
                             icon={<IconEdit size={20} color="green" />}
                             title="Edit"
                           >
@@ -411,24 +458,38 @@ const Home = () => {
             Add To do
           </Button>
 
-          <Box hidden={toggleAddTask}>
+          <Box hidden={toggleAddTask} pos={"relative"}>
+            <LoadingOverlay visible={AddTodoToListLoader} />
             <Textarea
+              description={80 - todoTitle?.length + " characters left"}
+              value={todoTitle}
               rows={2}
               maxLength={80}
               styles={{
                 label: {
                   color: "white",
                 },
+                description: {
+                  color: "white",
+                },
               }}
               placeholder="Your to do"
               label="Your To do"
+              onKeyDown={(e) => {
+                const keyPressed = e.key;
+                console.log(keyPressed);
+                if (keyPressed == "Enter") {
+                  e.preventDefault();
+                  createTodoApiRequest();
+                }
+              }}
               onChange={(e) => {
                 setTodoTitle(e.target.value);
               }}
             />
-            <Group w={"100%"} position="right" mt={3} spacing={3}>
+            <Group w={"100%"} position="right" mt={10} spacing={3}>
               <Button
-                // loading={AddTodoToListLoader}
+                loading={AddTodoToListLoader}
                 onClick={() => {
                   console.log("Calling the method");
                   createTodoApiRequest();
