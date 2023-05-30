@@ -27,6 +27,13 @@ const EditTodoModal = ({
           console.log(keyPressed);
           if (keyPressed === "Enter") {
             e.preventDefault();
+            updateTodoApiRequest(
+              todoObject._id,
+              todoObject.completed,
+              todoTitle
+            );
+            setOpened(!opened);
+            setTodoTitle("");
           }
         }}
         onChange={(e) => {
