@@ -53,7 +53,7 @@ const AddTodoSection = ({
           onKeyDown={(e) => {
             const keyPressed = e.key;
             console.log(keyPressed);
-            if (keyPressed == "Enter") {
+            if (keyPressed === "Enter") {
               e.preventDefault();
               createTodo();
             }

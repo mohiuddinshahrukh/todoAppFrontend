@@ -19,7 +19,7 @@ function App() {
         withGlobalStyles
         withNormalizeCSS
       >
-        <Notifications />
+        <Notifications limit={2} />
         <BrowserRouter>
           <Routes>
             <Route

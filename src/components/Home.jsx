@@ -63,7 +63,7 @@ const Home = () => {
       console.log("pending", pendingTodosList);
       setListItems(pendingTodosList);
     }
-  }, [filterType]);
+  }, [filterType, filteredTodos]);
 
   // Get method
   const getTodos = async () => {
@@ -111,7 +111,7 @@ const Home = () => {
   const deleteTodo = async (id) => {
     currentLoadingID = id;
     setTodoLoader(true);
-    let apiResponse = deleteTodoApiRequest(id);
+    let apiResponse = await deleteTodoApiRequest(id);
     if (apiResponse.status === 200) {
       successNotification("To-do deleted successfully!");
       setReRunUseEffect(!reRunUseEffect);

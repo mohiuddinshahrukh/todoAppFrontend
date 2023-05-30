@@ -44,5 +44,6 @@ export const updateTodoApiRequest = async (id, checkValue, title) => {
 // Delete Api Request
 export const deleteTodoApiRequest = async (id) => {
   let apiResponse = await axios.delete(`http://localhost:5001/api/todos/${id}`);
+  console.log(apiResponse);
   return apiResponse;
 };

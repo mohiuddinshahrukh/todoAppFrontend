@@ -6,17 +6,7 @@ import {
   Title,
   useMantineColorScheme,
 } from "@mantine/core";
-import {
-  IconArrowsLeftRight,
-  IconLogout,
-  IconMessageCircle,
-  IconMoonStars,
-  IconPhoto,
-  IconSearch,
-  IconSettings,
-  IconSun,
-  IconTrash,
-} from "@tabler/icons-react";
+import { IconLogout, IconMoonStars, IconSun } from "@tabler/icons-react";
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
