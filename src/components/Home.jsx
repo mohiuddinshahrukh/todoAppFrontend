@@ -5,6 +5,7 @@ import {
   Paper,
   ScrollArea,
   Stack,
+  Title,
 } from "@mantine/core";
 import React, { useEffect, useState } from "react";
 import {
@@ -70,8 +71,8 @@ const Home = () => {
     let apiResponse = await getTodosApiRequest();
     if (apiResponse?.status === 200) {
       successNotification("To-do's fetched successfully");
-      setFilteredTodos(apiResponse.data);
-      return apiResponse.data;
+      setFilteredTodos(apiResponse.data.todos);
+      return apiResponse.data.todos;
     } else {
       failureNotification(apiResponse?.message);
     }
@@ -81,7 +82,7 @@ const Home = () => {
   const createTodo = async () => {
     setAddTodoToListLoader(true);
     let apiResponse = await createTodoApiRequest(todoTitle);
-    console.log("API REQ RES: ", apiResponse);
+    //console.log("API REQ RES: ", apiResponse);
     if (apiResponse.status === 201) {
       setTodoTitle("");
       successNotification("To-do added successfully");
@@ -187,6 +188,44 @@ const Home = () => {
             }
           />
         </div>
+        {filterType === "all" ? (
+          listItems.length > 0 ? (
+            <Title color="white" my={"md"} align="center">
+              Total{" "}
+              {listItems.length > 1
+                ? listItems.length + " Todos"
+                : listItems.length + " Todo"}
+            </Title>
+          ) : (
+            <Title align="center" color="white" my={"md"}>
+              No Todos
+            </Title>
+          )
+        ) : filterType === "true" ? (
+          listItems.length > 0 ? (
+            <Title color="white" my={"md"} align="center">
+              Total{" "}
+              {listItems.length > 1
+                ? listItems.length + " Completed Todos"
+                : listItems.length + " Completed Todo"}
+            </Title>
+          ) : (
+            <Title align="center" color="white" my={"md"}>
+              No completed Todos
+            </Title>
+          )
+        ) : listItems.length > 0 ? (
+          <Title color="white" my={"md"} align="center">
+            Total{" "}
+            {listItems.length > 1
+              ? listItems.length + " Uncompleted Todos"
+              : listItems.length + " Uncompleted Todo"}
+          </Title>
+        ) : (
+          <Title align="center" color="white" my={"md"}>
+            No uncompleted Todos
+          </Title>
+        )}
         <Box pos={"relative"}>
           <LoadingOverlay visible={todosLoader} />
           <TodoListToggler

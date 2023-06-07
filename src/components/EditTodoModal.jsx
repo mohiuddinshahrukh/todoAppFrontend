@@ -24,7 +24,6 @@ const EditTodoModal = ({
         defaultValue={todoObject?.title}
         onKeyDown={(e) => {
           const keyPressed = e.key;
-          console.log(keyPressed);
           if (keyPressed === "Enter") {
             e.preventDefault();
             updateTodoApiRequest(

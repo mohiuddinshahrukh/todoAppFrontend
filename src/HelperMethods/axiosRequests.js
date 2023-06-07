@@ -4,7 +4,7 @@ import axios from "axios";
 export const getTodosApiRequest = async () => {
   try {
     let apiResponse = await axios.get("http://localhost:5001/api/todos");
-    console.log(apiResponse);
+    //console.log("Get api response: ", apiResponse);
     return apiResponse;
   } catch (error) {
     console.log(error);
@@ -18,7 +18,7 @@ export const createTodoApiRequest = async (todoTitle) => {
     apiResponse = await axios.post("http://localhost:5001/api/todos", {
       title: todoTitle,
     });
-    console.log("api response", apiResponse);
+    //console.log("create api response: ", apiResponse);
     return apiResponse.data;
   } catch (error) {
     console.log("Error");
@@ -38,12 +38,13 @@ export const updateTodoApiRequest = async (id, checkValue, title) => {
     completed: checkValue,
     completedTime: completionTimeinMS,
   });
+  //console.log("Update api response: ", apiResponse);
   return apiResponse;
 };
 
 // Delete Api Request
 export const deleteTodoApiRequest = async (id) => {
   let apiResponse = await axios.delete(`http://localhost:5001/api/todos/${id}`);
-  console.log(apiResponse);
+  //console.log("Delete api response: ", apiResponse);
   return apiResponse;
 };
